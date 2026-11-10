@@ -4,6 +4,8 @@
 
   // State
   let currentRange = '30d';
+  let customStart = '';
+  let customEnd = '';
   let chartMode = 'daily';
   let chartInstance = null;
   let deviceChartInstance = null;
@@ -200,8 +202,10 @@
     const e = document.getElementById('customEndDate').value;
     if (!s) return alert('Please select a start date');
     currentRange = 'custom';
+    customStart = s;
+    customEnd = e;
     document.querySelectorAll('.range-pill').forEach((p) => p.classList.remove('active'));
-    loadAnalytics(s, e);
+    loadAnalytics();
   });
 
   document.querySelectorAll('.chart-tab').forEach((tab) => {
@@ -212,23 +216,26 @@
     });
   });
 
-  async function loadAnalytics(customStart = '', customEnd = '') {
+  async function loadAnalytics() {
     try {
       let url = `${API_BASE}/analytics?range=${currentRange}`;
       if (currentRange === 'custom') {
-        url += `&startDate=${customStart}&endDate=${customEnd}`;
+        url += `&startDate=${encodeURIComponent(customStart)}&endDate=${encodeURIComponent(customEnd)}`;
       }
       const res = await apiFetch(url);
-      const { summary, chartTimeline, breakdowns } = res.data;
+      const summary = res.data?.summary || {};
+      const chartTimeline = res.data?.chartTimeline || [];
+      const breakdowns = res.data?.breakdowns || {};
 
       // Update 7 Cards
-      document.getElementById('metricTotalViews').textContent = Number(summary.totalPageViews).toLocaleString();
-      document.getElementById('metricUniqueVisitors').textContent = Number(summary.uniqueVisitors).toLocaleString();
-      document.getElementById('metricTodayVisitors').textContent = Number(summary.todayVisitors).toLocaleString();
-      document.getElementById('metricMonthVisitors').textContent = Number(summary.monthVisitors).toLocaleString();
-      document.getElementById('metricTotalProjects').textContent = Number(summary.totalProjects).toLocaleString();
-      document.getElementById('metricTotalMessages').textContent = Number(summary.totalMessages).toLocaleString();
-      document.getElementById('metricUnreadMessages').textContent = Number(summary.unreadMessages).toLocaleString();
+      const metric = (value) => Number(value || 0).toLocaleString();
+      document.getElementById('metricTotalViews').textContent = metric(summary.totalPageViews);
+      document.getElementById('metricUniqueVisitors').textContent = metric(summary.uniqueVisitors);
+      document.getElementById('metricTodayVisitors').textContent = metric(summary.todayVisitors);
+      document.getElementById('metricMonthVisitors').textContent = metric(summary.monthVisitors);
+      document.getElementById('metricTotalProjects').textContent = metric(summary.totalProjects);
+      document.getElementById('metricTotalMessages').textContent = metric(summary.totalMessages);
+      document.getElementById('metricUnreadMessages').textContent = metric(summary.unreadMessages);
 
       const badge = document.getElementById('sidebarUnreadBadge');
       if (summary.unreadMessages > 0) {
@@ -248,15 +255,38 @@
     }
   }
 
+  function bucketTimeline(timeline, mode) {
+    if (mode === 'daily') return timeline;
+    const buckets = new Map();
+    timeline.forEach((point) => {
+      const key = mode === 'monthly'
+        ? String(point.date || '').slice(0, 7)
+        : weekStart(point.date);
+      const current = buckets.get(key) || { date: key, visitors: 0, pageViews: 0 };
+      current.visitors += Number(point.visitors) || 0;
+      current.pageViews += Number(point.pageViews) || 0;
+      buckets.set(key, current);
+    });
+    return [...buckets.values()];
+  }
+
+  function weekStart(dateStr) {
+    const date = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    date.setDate(date.getDate() - date.getDay());
+    return date.toISOString().slice(0, 10);
+  }
+
   function renderTrafficChart(timeline) {
     const ctx = document.getElementById('trafficChart')?.getContext('2d');
     if (!ctx) return;
 
     if (chartInstance) chartInstance.destroy();
 
-    const labels = timeline.map((d) => d.date);
-    const visitors = timeline.map((d) => d.visitors);
-    const views = timeline.map((d) => d.pageViews);
+    const series = bucketTimeline(timeline, chartMode);
+    const labels = series.map((d) => d.date);
+    const visitors = series.map((d) => d.visitors);
+    const views = series.map((d) => d.pageViews);
 
     chartInstance = new Chart(ctx, {
       type: 'line',
@@ -386,8 +416,11 @@
       const res = await apiFetch(url);
       const messages = res.data;
       const { total, page, pages } = res.pagination;
+      const counts = res.counts || {};
 
-      document.getElementById('countFilterAll').textContent = total;
+      document.getElementById('countFilterAll').textContent = counts.all ?? total;
+      document.getElementById('countFilterUnread').textContent = counts.unread ?? 0;
+      document.getElementById('countFilterRead').textContent = counts.read ?? 0;
 
       if (!messages || messages.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="empty-cell">No matching transmissions found.</td></tr>';
@@ -523,7 +556,7 @@
       tableBody.innerHTML = projectsData.map((p) => `
         <tr>
           <td><strong>#${p.order}</strong></td>
-          <td><img src="${p.imageUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2232%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23222%22/></svg>'}" class="table-thumb" alt="Preview"></td>
+          <td>${mediaSrc(p.imageUrl) ? `<img src="${escapeHtml(mediaSrc(p.imageUrl))}" class="table-thumb" alt="">` : '<span class="table-thumb placeholder"></span>'}</td>
           <td><strong>${escapeHtml(p.title)}</strong><br><small style="color:var(--text-muted)">${(p.technologies || []).join(', ')}</small></td>
           <td><span class="status-tag read">${escapeHtml(p.category)}</span></td>
           <td>${p.badge ? `<span class="status-tag unread">${escapeHtml(p.badge)}</span>` : '-'}</td>
@@ -559,10 +592,12 @@
       document.getElementById('projectModalTitle').textContent = 'Edit Project';
       document.getElementById('projTitle').value = p.title || '';
       document.getElementById('projDesc').value = p.description || '';
+      ensureSelectOption('projCategory', p.category || 'frontend');
       document.getElementById('projCategory').value = p.category || 'frontend';
       document.getElementById('projBadge').value = p.badge || '';
       document.getElementById('projTech').value = (p.technologies || []).join(', ');
       document.getElementById('projImage').value = p.imageUrl || '';
+      setProjectPreview(p.imageUrl);
       document.getElementById('projLive').value = p.liveUrl || '';
       document.getElementById('projGithub').value = p.githubUrl || '';
       document.getElementById('projOrder').value = p.order || 0;
@@ -570,22 +605,48 @@
     } else {
       document.getElementById('projectModalTitle').textContent = 'Add New Project';
       document.getElementById('projOrder').value = projectsData.length + 1;
+      setProjectPreview('');
     }
+    setFormStatus('projectFormStatus', '');
     projectModal.style.display = 'flex';
+  }
+
+  function setProjectPreview(url) {
+    const wrap = document.getElementById('projImagePreview');
+    const img = document.getElementById('projImagePreviewImg');
+    const src = mediaSrc(url);
+    if (!src || src.startsWith('data:')) {
+      wrap.hidden = true;
+      img.removeAttribute('src');
+      return;
+    }
+    img.src = src;
+    wrap.hidden = false;
   }
 
   // Upload Project Image
   document.getElementById('uploadProjImgBtn').addEventListener('click', () => document.getElementById('projFileInput').click());
+  document.getElementById('projImage').addEventListener('input', (e) => setProjectPreview(e.target.value.trim()));
   document.getElementById('projFileInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('image', file);
+    const button = document.getElementById('uploadProjImgBtn');
+    button.disabled = true;
+    button.textContent = 'Uploading...';
     try {
       const res = await apiFetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
       document.getElementById('projImage').value = res.url;
-      alert('Image uploaded successfully!');
-    } catch (err) { alert(err.message); }
+      setProjectPreview(res.url);
+      setFormStatus('projectFormStatus', 'Image uploaded. Save the project to publish it.');
+    } catch (err) {
+      setFormStatus('projectFormStatus', err.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Upload image';
+      e.target.value = '';
+    }
   });
 
   projectForm.addEventListener('submit', async (e) => {
@@ -604,6 +665,9 @@
       isFeatured: document.getElementById('projFeatured').checked,
     };
 
+    const saveBtn = document.getElementById('saveProjectBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
     try {
       if (id) {
         await apiFetch(`${API_BASE}/projects/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
@@ -612,7 +676,12 @@
       }
       projectModal.style.display = 'none';
       loadProjects();
-    } catch (err) { alert(err.message); }
+    } catch (err) {
+      setFormStatus('projectFormStatus', err.message, true);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Project';
+    }
   });
 
   async function deleteProjectItem(id) {
@@ -788,8 +857,12 @@
       document.getElementById('tlPeriod').value = item.period || '';
       document.getElementById('tlDesc').value = item.description || '';
       document.getElementById('tlOrder').value = item.order || 0;
+      const tagField = document.getElementById('tlTagWrap');
+      if (isExp) document.getElementById('tlTag').value = item.tag || '';
+      tagField.hidden = !isExp;
     } else {
       document.getElementById('timelineModalTitle').textContent = `Add ${isExp ? 'Experience' : 'Education'}`;
+      document.getElementById('tlTagWrap').hidden = !isExp;
     }
     timelineModal.style.display = 'flex';
   }
@@ -809,6 +882,7 @@
     if (isExp) {
       payload.company = document.getElementById('tlOrg').value.trim();
       payload.role = document.getElementById('tlTitle').value.trim();
+      payload.tag = document.getElementById('tlTag').value.trim();
     } else {
       payload.institution = document.getElementById('tlOrg').value.trim();
       payload.degree = document.getElementById('tlTitle').value.trim();
@@ -857,6 +931,8 @@
       document.getElementById('profWhatsapp').value = p.whatsappUrl || '';
       document.getElementById('profResume').value = p.resumeUrl || '';
       document.getElementById('profAvatar').value = p.avatarUrl || '';
+      setAvatarPreview(p.avatarUrl);
+      setFormStatus('profileFormStatus', '');
     } catch (err) {
       console.error('Failed to load profile:', err);
       alert(`Failed to load profile: ${err.message}`);
@@ -872,8 +948,13 @@
     try {
       const res = await apiFetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
       document.getElementById('profAvatar').value = res.url;
-      alert('Avatar uploaded successfully!');
-    } catch (err) { alert(err.message); }
+      setAvatarPreview(res.url);
+      setFormStatus('profileFormStatus', 'Avatar uploaded. Save profile changes to publish it.');
+    } catch (err) {
+      setFormStatus('profileFormStatus', err.message, true);
+    } finally {
+      e.target.value = '';
+    }
   });
 
   document.getElementById('profileForm').addEventListener('submit', async (e) => {
@@ -906,9 +987,9 @@
 
     try {
       await apiFetch(`${API_BASE}/profile`, { method: 'PUT', body: JSON.stringify(payload) });
-      alert('Profile updated successfully!');
+      setFormStatus('profileFormStatus', 'Profile updated successfully.');
     } catch (err) {
-      alert(`Failed to save: ${err.message}`);
+      setFormStatus('profileFormStatus', err.message, true);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save Profile Changes';
@@ -922,6 +1003,47 @@
     return d.toLocaleDateString(undefined, {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
+  }
+
+  function mediaSrc(url) {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url, location.origin);
+      if (parsed.pathname.startsWith('/uploads/')) return `${parsed.pathname}${parsed.search}`;
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
+  function ensureSelectOption(selectId, value) {
+    const select = document.getElementById(selectId);
+    if (!value || [...select.options].some((option) => option.value === value)) return;
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  }
+
+  function setAvatarPreview(url) {
+    const wrap = document.getElementById('avatarPreview');
+    const img = document.getElementById('avatarPreviewImg');
+    const src = mediaSrc(url);
+    if (!src) {
+      wrap.hidden = true;
+      img.removeAttribute('src');
+      return;
+    }
+    img.src = src;
+    wrap.hidden = false;
+  }
+
+  function setFormStatus(id, message, isError = false) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.textContent = message || '';
+    node.className = `form-status${isError ? ' error' : ''}${message ? '' : ' is-empty'}`;
   }
 
   function escapeHtml(str) {

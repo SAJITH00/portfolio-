@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "installCommand": "cd backend && npm install --production",
+  "functions": {
+    "backend/api/index.js": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/backend/api/index.js" },
+    { "source": "/uploads/:path*", "destination": "/backend/api/index.js" },
+    { "source": "/admin/:path*", "destination": "/backend/api/index.js" },
+    { "source": "/admin", "destination": "/backend/api/index.js" }
+  ]
+}

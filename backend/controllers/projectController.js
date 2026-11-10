@@ -1,4 +1,5 @@
 const Project = require('../models/Project');
+const { normalizeMediaUrl } = require('../utils/mediaUrl');
 
 // GET /api/projects (Public)
 const getProjects = async (req, res, next) => {
@@ -39,7 +40,7 @@ const createProject = async (req, res, next) => {
       category: category || 'frontend',
       badge: badge || '',
       technologies: techArray,
-      imageUrl: imageUrl || '',
+      imageUrl: normalizeMediaUrl(imageUrl),
       liveUrl: liveUrl || '#contact',
       githubUrl: githubUrl || '#contact',
       isFeatured: !!isFeatured,
@@ -60,6 +61,10 @@ const createProject = async (req, res, next) => {
 const updateProject = async (req, res, next) => {
   try {
     const updateData = { ...req.body };
+
+    if (Object.prototype.hasOwnProperty.call(updateData, 'imageUrl')) {
+      updateData.imageUrl = normalizeMediaUrl(updateData.imageUrl);
+    }
 
     if (updateData.technologies && !Array.isArray(updateData.technologies)) {
       updateData.technologies = updateData.technologies

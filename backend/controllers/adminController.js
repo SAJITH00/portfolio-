@@ -21,15 +21,25 @@ const getMessages = async (req, res, next) => {
       filter.$or = [{ name: regex }, { email: regex }, { subject: regex }, { message: regex }];
     }
 
-    const total = await ContactMessage.countDocuments(filter);
-    const messages = await ContactMessage.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const searchFilter = {};
+    if (filter.$or) searchFilter.$or = filter.$or;
+
+    const [total, messages, allCount, unreadCount, readCount] = await Promise.all([
+      ContactMessage.countDocuments(filter),
+      ContactMessage.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ContactMessage.countDocuments(searchFilter),
+      ContactMessage.countDocuments({ ...searchFilter, isRead: false }),
+      ContactMessage.countDocuments({ ...searchFilter, isRead: true }),
+    ]);
 
     return res.status(200).json({
       success: true,
       data: messages,
+      counts: {
+        all: allCount,
+        unread: unreadCount,
+        read: readCount,
+      },
       pagination: {
         total,
         page,

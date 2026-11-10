@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment files (NEVER commit secrets)
+.env
+backend/.env
+
+# Build output
+dist/
+.vercel/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads (stored in MongoDB, not git)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+

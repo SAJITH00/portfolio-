@@ -1,4 +1,5 @@
 const Profile = require('../models/Profile');
+const { normalizeMediaUrl } = require('../utils/mediaUrl');
 
 // GET /api/profile (Public)
 const getProfile = async (req, res, next) => {
@@ -16,6 +17,10 @@ const getProfile = async (req, res, next) => {
 // PUT/PATCH /api/admin/profile (Admin)
 const updateProfile = async (req, res, next) => {
   try {
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'avatarUrl')) {
+      req.body.avatarUrl = normalizeMediaUrl(req.body.avatarUrl);
+    }
+
     let profile = await Profile.findOne();
     if (!profile) {
       profile = await Profile.create(req.body);

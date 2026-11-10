@@ -30,7 +30,8 @@ const { getProfile, updateProfile } = require('../controllers/profileController'
 const { authenticateAdmin } = require('../middleware/auth');
 const { loginLimiter } = require('../middleware/rateLimiter');
 const { validateLogin } = require('../middleware/validator');
-const upload = require('../middleware/upload');
+const handleImageUpload = require('../middleware/upload');
+const { saveUpload } = require('../controllers/uploadController');
 
 const router = express.Router();
 
@@ -48,18 +49,8 @@ router.delete('/messages/:id', authenticateAdmin, deleteMessage);
 // Analytics
 router.get('/analytics', authenticateAdmin, getAnalyticsOverview);
 
-// File Upload
-router.post('/upload', authenticateAdmin, upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'Please upload an image file.' });
-  }
-  const fileUrl = `/uploads/${req.file.filename}`;
-  return res.status(200).json({
-    success: true,
-    message: 'File uploaded successfully.',
-    url: fileUrl,
-  });
-});
+// File Upload — stored in MongoDB so files survive Render's temporary disk
+router.post('/upload', authenticateAdmin, handleImageUpload, saveUpload);
 
 // Projects CRUD
 router.post('/projects', authenticateAdmin, createProject);

@@ -275,7 +275,7 @@
               <h3>Portfolio Projects Manager</h3>
               <p class="chart-subtitle">Add, edit, reorder and showcase your software engineering projects</p>
             </div>
-            <button id="addNewProjectBtn" class="btn-primary" style="width: auto; padding: 10px 18px;">+ Add New Project</button>
+            <button id="addNewProjectBtn" class="btn-primary btn-inline" type="button">+ Add New Project</button>
           </div>
           <div class="table-container">
             <table class="data-table" id="projectsTable">
@@ -306,7 +306,7 @@
               <h3>Technical Arsenal &amp; AI Tools</h3>
               <p class="chart-subtitle">Manage technologies displayed in the Arsenal bento grid</p>
             </div>
-            <button id="addNewSkillBtn" class="btn-primary" style="width: auto; padding: 10px 18px;">+ Add Skill</button>
+            <button id="addNewSkillBtn" class="btn-primary btn-inline" type="button">+ Add Skill</button>
           </div>
           <div class="table-container">
             <table class="data-table" id="skillsTable">
@@ -336,7 +336,7 @@
               <h3>Work Experience</h3>
               <p class="chart-subtitle">Professional experience and engineering journey milestones</p>
             </div>
-            <button id="addNewExpBtn" class="btn-primary" style="width: auto; padding: 10px 18px;">+ Add Experience</button>
+            <button id="addNewExpBtn" class="btn-primary btn-inline" type="button">+ Add Experience</button>
           </div>
           <div class="table-container">
             <table class="data-table" id="experienceTable">
@@ -362,7 +362,7 @@
               <h3>Education &amp; Qualifications</h3>
               <p class="chart-subtitle">Degrees, diplomas, certifications, and academies</p>
             </div>
-            <button id="addNewEduBtn" class="btn-primary" style="width: auto; padding: 10px 18px;">+ Add Education</button>
+            <button id="addNewEduBtn" class="btn-primary btn-inline" type="button">+ Add Education</button>
           </div>
           <div class="table-container">
             <table class="data-table" id="educationTable">
@@ -392,6 +392,7 @@
             </div>
           </div>
           <form id="profileForm" class="profile-editor-form">
+            <p id="profileFormStatus" class="form-status is-empty" role="status"></p>
             <div class="form-grid-2">
               <div class="form-group">
                 <label for="profName">FULL NAME</label>
@@ -401,13 +402,13 @@
                 <label for="profTitle">PROFESSIONAL TITLE / ROLES</label>
                 <input type="text" id="profTitle" required>
               </div>
-              <div class="form-group">
-                <label for="profTagline">PORTFOLIO TAGLINE</label>
-                <input type="text" id="profTagline">
-              </div>
+            </div>
+            <div class="form-group">
+              <label for="profTagline">PORTFOLIO TAGLINE</label>
+              <input type="text" id="profTagline">
             </div>
 
-            <div class="form-grid-3">
+            <div class="form-grid-2">
               <div class="form-group">
                 <label for="profLocation">LOCATION</label>
                 <input type="text" id="profLocation">
@@ -477,13 +478,16 @@
               <label for="profAvatar">PROFILE / AVATAR IMAGE URL</label>
               <div class="input-with-upload">
                 <input type="text" id="profAvatar" placeholder="https://... or upload below">
-                <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
-                <button type="button" id="uploadAvatarBtn" class="btn-secondary">Upload Image 📁</button>
+                <input type="file" id="avatarFileInput" accept="image/*" hidden>
+                <button type="button" id="uploadAvatarBtn" class="btn-secondary">Upload image</button>
+              </div>
+              <div class="upload-preview" id="avatarPreview" hidden>
+                <img id="avatarPreviewImg" alt="Avatar preview">
               </div>
             </div>
 
-            <div style="margin-top: 24px;">
-              <button type="submit" id="saveProfileBtn" class="btn-primary" style="width: auto; padding: 12px 28px;">Save Profile Changes</button>
+            <div class="form-actions">
+              <button type="submit" id="saveProfileBtn" class="btn-primary btn-inline">Save Profile Changes</button>
             </div>
           </form>
         </div>
@@ -529,8 +533,9 @@
         <h2 id="projectModalTitle">Add New Project</h2>
         <button class="modal-close" id="projectModalCloseBtn">&times;</button>
       </div>
-      <form id="projectForm">
+      <form id="projectForm" class="modal-form">
         <div class="modal-body">
+          <p id="projectFormStatus" class="form-status is-empty" role="status"></p>
           <input type="hidden" id="projId">
           <div class="form-group">
             <label for="projTitle">PROJECT TITLE *</label>
@@ -563,9 +568,12 @@
           <div class="form-group">
             <label for="projImage">PROJECT PREVIEW IMAGE</label>
             <div class="input-with-upload">
-              <input type="text" id="projImage" placeholder="Image URL or upload below">
-              <input type="file" id="projFileInput" accept="image/*" style="display: none;">
-              <button type="button" id="uploadProjImgBtn" class="btn-secondary">Upload 📁</button>
+              <input type="text" id="projImage" placeholder="Image URL or upload a file">
+              <input type="file" id="projFileInput" accept="image/*" hidden>
+              <button type="button" id="uploadProjImgBtn" class="btn-secondary">Upload image</button>
+            </div>
+            <div class="upload-preview" id="projImagePreview" hidden>
+              <img id="projImagePreviewImg" alt="Project preview">
             </div>
           </div>
           <div class="form-grid-2">
@@ -583,15 +591,15 @@
               <label for="projOrder">DISPLAY ORDER</label>
               <input type="number" id="projOrder" value="0">
             </div>
-            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
-              <input type="checkbox" id="projFeatured" style="width: auto;">
-              <label for="projFeatured" style="margin: 0; cursor: pointer;">Featured on Homepage</label>
+            <div class="form-group check-row">
+              <input type="checkbox" id="projFeatured">
+              <label for="projFeatured">Featured on Homepage</label>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="cancelProjectBtn">Cancel</button>
-          <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Save Project</button>
+          <button type="submit" id="saveProjectBtn" class="btn-primary btn-inline">Save Project</button>
         </div>
       </form>
     </div>
@@ -604,7 +612,7 @@
         <h2 id="skillModalTitle">Add New Skill</h2>
         <button class="modal-close" id="skillModalCloseBtn">&times;</button>
       </div>
-      <form id="skillForm">
+      <form id="skillForm" class="modal-form">
         <div class="modal-body">
           <input type="hidden" id="skillId">
           <div class="form-group">
@@ -637,14 +645,14 @@
               <input type="number" id="skillOrder" value="0">
             </div>
           </div>
-          <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="skillHighlight" style="width: auto;">
-            <label for="skillHighlight" style="margin: 0; cursor: pointer;">Highlight / Featured Chip</label>
+          <div class="form-group check-row">
+            <input type="checkbox" id="skillHighlight">
+            <label for="skillHighlight">Highlight / Featured Chip</label>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="cancelSkillBtn">Cancel</button>
-          <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Save Skill</button>
+          <button type="submit" class="btn-primary btn-inline">Save Skill</button>
         </div>
       </form>
     </div>
@@ -657,7 +665,7 @@
         <h2 id="timelineModalTitle">Add Timeline Entry</h2>
         <button class="modal-close" id="timelineModalCloseBtn">&times;</button>
       </div>
-      <form id="timelineForm">
+      <form id="timelineForm" class="modal-form">
         <div class="modal-body">
           <input type="hidden" id="timelineId">
           <input type="hidden" id="timelineType" value="experience">
@@ -668,6 +676,10 @@
           <div class="form-group">
             <label id="tlTitleLabel" for="tlTitle">ROLE / DEGREE *</label>
             <input type="text" id="tlTitle" required>
+          </div>
+          <div class="form-group" id="tlTagWrap">
+            <label for="tlTag">TAG</label>
+            <input type="text" id="tlTag" placeholder="e.g. Internship, Full-time">
           </div>
           <div class="form-group">
             <label for="tlPeriod">PERIOD / DURATION</label>
@@ -684,7 +696,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="cancelTimelineBtn">Cancel</button>
-          <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Save Entry</button>
+          <button type="submit" class="btn-primary btn-inline">Save Entry</button>
         </div>
       </form>
     </div>

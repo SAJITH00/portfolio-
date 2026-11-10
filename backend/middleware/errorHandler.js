@@ -15,7 +15,7 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   const response = {
     success: false,
     message: err.message || 'Internal Server Error occurred. Please try again later.',

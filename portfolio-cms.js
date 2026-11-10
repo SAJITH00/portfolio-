@@ -1,25 +1,32 @@
 (() => {
-  const apiRoot = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port !== '5000'
-    ? 'http://localhost:5000/api' : '/api';
+  const scriptApi = document.currentScript && document.currentScript.dataset
+    ? document.currentScript.dataset.api
+    : '';
+  const apiRoot = scriptApi
+    ? String(scriptApi).replace(/\/$/, '')
+    : (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port !== '5000'
+      ? 'http://localhost:5000/api'
+      : '/api';
 
   const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[char]);
 
+  const backendOrigin = apiRoot.startsWith('http')
+    ? new URL(apiRoot).origin
+    : location.origin;
+
   const safeUrl = (value) => {
     if (!value) return '';
     const url = String(value).trim();
-    if (url.startsWith('#')) return '';
-    if (url.startsWith('/uploads/')) {
-      const backendOrigin = apiRoot.startsWith('http')
-        ? new URL(apiRoot).origin
-        : location.origin;
-      return new URL(url, backendOrigin).href;
-    }
-    if (url.startsWith('/') && !url.startsWith('//')) return url;
+    if (!url || url.startsWith('#')) return '';
     try {
-      const parsed = new URL(url, location.href);
-      return ['http:', 'https:'].includes(parsed.protocol) ? url : '';
+      const parsed = new URL(url, backendOrigin);
+      if (parsed.pathname.startsWith('/uploads/')) {
+        return new URL(`${parsed.pathname}${parsed.search}`, backendOrigin).href;
+      }
+      if (url.startsWith('/') && !url.startsWith('//')) return url;
+      return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
     } catch {
       return '';
     }
