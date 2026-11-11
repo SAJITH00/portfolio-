@@ -76,12 +76,15 @@ async function run() {
   assert.match(empty.nodes.projGrid.innerHTML, /No projects have been published/);
   assert.match(empty.nodes.bento.innerHTML, /No skills have been added/);
   assert.match(empty.nodes.timelineBox.innerHTML, /No education or experience/);
-  assert.equal(empty.status.textContent, '');
+  assert.match(empty.status.textContent, /Backend connected/);
   assert.notEqual(empty.nodes.projGrid.innerHTML, 'built-in project cards');
 
   const offline = await renderWith({}, true);
-  assert.equal(offline.nodes.projGrid.innerHTML, 'built-in project cards');
-  assert.match(offline.status.textContent, /Showing the saved page content/);
+  assert.match(offline.nodes.projGrid.innerHTML, /backend is not connected/);
+  assert.doesNotMatch(offline.nodes.projGrid.innerHTML, /built-in project cards/);
+  assert.equal(offline.nodes.projGrid.hidden, false);
+  assert.match(offline.status.textContent, /Backend not connected/);
+  assert.equal(offline.status.attributes['data-state'], 'error');
 
   const populated = await renderWith({
     profile: { name: 'Sajith' },
@@ -104,6 +107,7 @@ async function run() {
   assert.doesNotMatch(populated.nodes.projGrid.innerHTML, /href="#contact"/);
   assert.match(populated.nodes.bento.innerHTML, /JavaScript/);
   assert.match(populated.nodes.timelineBox.innerHTML, /Diploma/);
+  assert.match(populated.status.textContent, /Backend connected/);
 
   console.log('Portfolio CMS tests passed: MongoDB results replace hardcoded content, including empty collections.');
 }

@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install --production",
+    "postinstall": "npm install --prefix backend --omit=dev",
+    "build": "echo Build complete",
     "start": "cd backend && node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   }
 }
-

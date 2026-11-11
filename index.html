@@ -1789,6 +1789,28 @@
       gap: clamp(16px, 2.2vw, 24px);
     }
 
+    .proj-grid[hidden] {
+      display: none;
+    }
+
+    .cms-status {
+      margin: 0 0 18px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-2);
+      font-size: 14px;
+    }
+
+    .cms-status:empty {
+      display: none;
+    }
+
+    .cms-status[data-state="error"] {
+      border-color: color-mix(in srgb, var(--error) 45%, transparent);
+      color: var(--error);
+    }
+
     .proj {
       background: var(--card);
       border: 1px solid var(--border-soft);
@@ -3182,14 +3204,15 @@
               administrative automation.</p>
           </div>
           <div class="filters rv" id="filters" role="group" aria-label="Filter projects">
-            <button class="filter on" data-f="all" aria-pressed="true">All (5)</button>
+            <button class="filter on" data-f="all" aria-pressed="true">All (0)</button>
             <button class="filter" data-f="frontend" aria-pressed="false">Frontend</button>
             <button class="filter" data-f="fullstack" aria-pressed="false">Full Stack</button>
             <button class="filter" data-f="ai" aria-pressed="false">AI Tools</button>
           </div>
         </div>
 
-        <div class="proj-grid" id="projGrid">
+        <p id="portfolioCmsStatus" class="cms-status" role="status" aria-live="polite">Connecting to backend...</p>
+        <div class="proj-grid" id="projGrid" aria-busy="true" hidden>
           <!-- 01 Featured -->
           <article class="proj featured rv" data-cat="fullstack frontend">
             <div>
@@ -3487,10 +3510,12 @@
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       const isTouch = matchMedia('(pointer: coarse)').matches;
 
-      /* API Base URL detection: works seamlessly both on Live Server / port 5500 and production */
-      const API_ROOT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '5000'
-        ? 'http://localhost:5000/api'
-        : '/api';
+
+/* Backend API URL */
+const API_ROOT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '5000'
+  ? 'http://localhost:5000/api'
+  : 'https://portfolio-backend-8gy7.onrender.com/api';
+
 
       /* ---------- Real Backend Visitor Analytics ---------- */
       const visitDisplay = document.getElementById('visitorCount');

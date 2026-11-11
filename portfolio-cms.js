@@ -2,11 +2,11 @@
   const scriptApi = document.currentScript && document.currentScript.dataset
     ? document.currentScript.dataset.api
     : '';
-  const apiRoot = scriptApi
-    ? String(scriptApi).replace(/\/$/, '')
-    : (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port !== '5000'
-      ? 'http://localhost:5000/api'
-      : '/api';
+  
+const apiRoot = scriptApi
+  ? String(scriptApi).replace(/\/$/, '')
+  : 'https://portfolio-backend-8gy7.onrender.com/api';
+
 
   const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -45,9 +45,12 @@
     return status;
   };
 
-  const setStatus = (message) => {
+  const setStatus = (message, state = '') => {
     const status = statusElement();
-    if (status) status.textContent = message;
+    if (!status) return;
+    status.textContent = message;
+    if (state) status.setAttribute('data-state', state);
+    else status.removeAttribute('data-state');
   };
 
   function renderProfile(profile = {}) {
@@ -212,6 +215,10 @@
   }
 
   async function loadPortfolioContent() {
+    const grid = document.getElementById('projGrid');
+    if (grid) grid.setAttribute('aria-busy', 'true');
+    setStatus('Connecting to backend...');
+
     try {
       const response = await fetch(`${apiRoot}/portfolio`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Portfolio API returned HTTP ${response.status}.`);
@@ -223,9 +230,20 @@
       renderProjects(projects);
       renderSkills(skills);
       renderTimeline(education, experience);
-      setStatus('');
+      if (grid) {
+        grid.hidden = false;
+        grid.setAttribute('aria-busy', 'false');
+      }
+      setStatus('Backend connected — showing live portfolio data.');
     } catch (error) {
-      setStatus('Live portfolio data could not be loaded. Showing the saved page content; check the backend connection and FRONTEND_URL CORS setting.');
+      if (grid) {
+        grid.innerHTML = '<p class="cms-empty">Live projects are unavailable because the backend is not connected.</p>';
+        grid.hidden = false;
+        grid.setAttribute('aria-busy', 'false');
+      }
+      const allFilter = document.querySelector('#filters [data-f="all"]');
+      if (allFilter) allFilter.textContent = 'All (0)';
+      setStatus('Backend not connected — live portfolio data is unavailable. Check that the backend is deployed and its database is configured.', 'error');
       console.error('Portfolio content could not be loaded:', error);
     }
   }
